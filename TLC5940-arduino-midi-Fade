@@ -1,13 +1,13 @@
 #include <Tlc5940.h>
 #include <MIDI.h>
 
- MIDI_CREATE_DEFAULT_INSTANCE()
+MIDI_CREATE_DEFAULT_INSTANCE()
+
 
 //// PARAMETERS ////
 
 // Fading curve
-static const uint8_t array[] PROGMEM =
-{255,200,170,145,120,105,85,65,48,30,20,10,5,4,2,0,0,0};
+static const uint8_t array[] PROGMEM = {255,200,170,145,120,105,85,65,48,30,20,10,5,4,2,0,0,0};
 
 // How fast curve is walked through (= transistion time between steps)
 const uint8_t decayTime = 50;
@@ -20,6 +20,9 @@ const uint8_t numbChannels = 16;
 
 // Set channel to first value in array and start fade out
 void startFade(uint8_t channel);
+
+// Test if fading works on all channels
+void startAllFades();
 
 // Set all channels to last value of array and therefore stop fade out
 void resetStates();
@@ -37,21 +40,20 @@ uint8_t fadeStates[numbChannels];
 
 void setup() {
 
-        Tlc.init();
-        delay(50);
-        flashall(); // Flashes all channels one by one for testing
-        resetStates();
-        MIDI.begin();
+	Tlc.init();
+	resetStates();
+	MIDI.begin();
+	startAllFades();
+
 }
 
 void loop() {
 
-    startFade(random(1, 16));
-        step();
-        unsigned long now=millis();
-        while (millis()<(now+decayTime)) /MIDI.read();
-  }
+	step();
+	unsigned long now=millis();
+	while (millis()<(now+decayTime)) MIDI.read();
 
+}
 
 
 
@@ -60,10 +62,16 @@ void startFade(uint8_t channel) {
   fadeStates[channel] = 0;
 }
 
+void startAllFades() {
+	for (uint8_t index=0; index < numbChannels; index++)  {
+		fadeStates[index] = 0;
+	}
+}
+
 void resetStates() {
-        for (uint8_t index=0; index < numbChannels; index++)  {
-                fadeStates[index] = numbSteps-1;
-        }
+	for (uint8_t index=0; index < numbChannels; index++)  {
+		fadeStates[index] = numbSteps-1;
+	}
 }
 
 void step() {
@@ -74,17 +82,5 @@ void step() {
   Tlc.update();
 }
 
-void flashall() { // Flashes all channels one by one for testing
-    for (int j = 0; j < 16 ; j++) {
-        Tlc.set(j,4095);
-          }
-        Tlc.update();
-  
-    delay(100);
-    for (int j = 0; j < 16 ; j++) {
-         Tlc.set(j,0);
-                                   }
-    Tlc.update();
-        delay(100);
-  
-}
+
+
