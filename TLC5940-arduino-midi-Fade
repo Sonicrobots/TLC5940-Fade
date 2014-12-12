@@ -1,0 +1,90 @@
+#include <Tlc5940.h>
+#include <MIDI.h>
+
+ MIDI_CREATE_DEFAULT_INSTANCE()
+
+//// PARAMETERS ////
+
+// Fading curve
+static const uint8_t array[] PROGMEM =
+{255,200,170,145,120,105,85,65,48,30,20,10,5,4,2,0,0,0};
+
+// How fast curve is walked through (= transistion time between steps)
+const uint8_t decayTime = 50;
+
+// Numbers of channels you want to control
+const uint8_t numbChannels = 16;
+
+
+//// FUNCTIONS TO CALL IN SKETCH ////
+
+// Set channel to first value in array and start fade out
+void startFade(uint8_t channel);
+
+// Set all channels to last value of array and therefore stop fade out
+void resetStates();
+
+// Sets all active (=not already faded out) channels to the next value in array
+void step();
+
+
+////////// Don't touch
+
+const uint8_t numbSteps = sizeof(array)/sizeof(array[0]);
+uint8_t fadeStates[numbChannels];
+
+//////////
+
+void setup() {
+
+        Tlc.init();
+        delay(50);
+        flashall(); // Flashes all channels one by one for testing
+        resetStates();
+        MIDI.begin();
+}
+
+void loop() {
+
+    startFade(random(1, 16));
+        step();
+        unsigned long now=millis();
+        while (millis()<(now+decayTime)) /MIDI.read();
+  }
+
+
+
+
+//// CUSTOM FUNCTIONS
+void startFade(uint8_t channel) {
+  fadeStates[channel] = 0;
+}
+
+void resetStates() {
+        for (uint8_t index=0; index < numbChannels; index++)  {
+                fadeStates[index] = numbSteps-1;
+        }
+}
+
+void step() {
+  for (uint8_t channel=0; channel<numbChannels; channel++) {
+    if (fadeStates[channel] < numbSteps-1) fadeStates[channel]++;
+    Tlc.set(channel,pgm_read_byte(&array[fadeStates[channel]]));
+  }
+  Tlc.update();
+}
+
+void flashall() { // Flashes all channels one by one for testing
+    for (int j = 0; j < 16 ; j++) {
+        Tlc.set(j,4095);
+          }
+        Tlc.update();
+  
+    delay(100);
+    for (int j = 0; j < 16 ; j++) {
+         Tlc.set(j,0);
+                                   }
+    Tlc.update();
+        delay(100);
+  
+}
