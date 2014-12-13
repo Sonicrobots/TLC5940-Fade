@@ -1,16 +1,76 @@
+// 
+// Create a Fade effect, which fades out an LED connected to an TLC5940 (16 Channel LED PWM Driver), connected via SPI to an arduino. 
+// The Arduino takes MIDI Notes and triggers an LED which fades out when a NoteOn comes in.
+// Usefull for creating customized MIDI Triggered Light effects 
+// 
+// /~~\ /~~\ |\  |~|~/~~  |~~\ /~~\ |~~\ /~~\~~|~~/~~\
+// `--.|    || \ | ||     |__/|    ||--<|    | |  `--.
+// \__/ \__/ |  \|_|_\__  |  \ \__/ |__/ \__/  |  \__/
+//
+// Contributors: Moritz Simon Geist, LennartS
+// 12/2014, v.01
+//
+// === Recources: ===
+// 1. Create and edit logarithmic Value lists: https://docs.google.com/spreadsheets/d/1KdJeNoF1NuLTvQSDkJnCvIzLNUSvrxJJv9CtxnRS0rM/edit#gid=0
+// 2. MIDI Library https://github.com/FortySevenEffects/arduino_midi_library (used: c4.2.)
+//
+
 #include <Tlc5940.h>
 #include <MIDI.h>
 
 MIDI_CREATE_DEFAULT_INSTANCE()
 
-
 //// PARAMETERS ////
 
-// Fading curve
-static const uint8_t array[] PROGMEM = {255,200,170,145,120,105,85,65,48,30,20,10,5,4,2,0,0,0};
+// Fading curve --> the perception of the human eye doenst take a linear bightness drop as linear --> logarithmic brightness drop is more natural
+static const uint8_t array[] PROGMEM = {255	,
+253	,
+243	,
+234	,
+224	,
+215	,
+205	,
+196	,
+187	,
+179	,
+170	,
+161	,
+153	,
+145	,
+137	,
+129	,
+122	,
+114	,
+107	,
+100	,
+93	,
+86	,
+80	,
+74	,
+68	,
+62	,
+56	,
+51	,
+46	,
+41	,
+36	,
+31	,
+27	,
+23	,
+20	,
+16	,
+13	,
+10	,
+8	,
+5	,
+4	,
+2	,
+1	,
+0	,
+0	,};
 
 // How fast curve is walked through (= transistion time between steps)
-const uint8_t decayTime = 50;
+const uint8_t decayTime = 12;
 
 // Numbers of channels you want to control
 const uint8_t numbChannels = 16;
@@ -39,7 +99,7 @@ uint8_t fadeStates[numbChannels];
 //////////
 
 void setup() {
-
+        MIDI.setHandleNoteOn(HandleNoteOn); // 
 	Tlc.init();
 	resetStates();
 	MIDI.begin();
@@ -48,16 +108,14 @@ void setup() {
 }
 
 void loop() {
-
 	step();
 	unsigned long now=millis();
 	while (millis()<(now+decayTime)) MIDI.read();
-
 }
 
 
 
-//// CUSTOM FUNCTIONS
+////////////////// CUSTOM FUNCTIONS /////////////////////////////
 void startFade(uint8_t channel) {
   fadeStates[channel] = 0;
 }
@@ -77,10 +135,80 @@ void resetStates() {
 void step() {
   for (uint8_t channel=0; channel<numbChannels; channel++) {
     if (fadeStates[channel] < numbSteps-1) fadeStates[channel]++;
-    Tlc.set(channel,pgm_read_byte(&array[fadeStates[channel]]));
+    Tlc.set(channel,pgm_read_byte(&array[fadeStates[channel]])*16);
   }
   Tlc.update();
 }
+// EDIT this section to map the incoming MIDI-Notes to the appropriate TLC5940 Channel
+void HandleNoteOn(byte channel, byte note, byte velocity)
+{          
+
+  switch (note) {
+    case 53: 			// Midi Note XX goes to ..
+      startFade(1); 		// .. TLC Channel 1
+      break;
+    case 54: 			// Midi Note XX goes to ..
+      startFade(2); 		// .. TLC Channel 2
+      break;
+
+    case 55: 			// Midi Note XX goes to ..
+      startFade(3); 		// .. TLC Channel 3
+      break;
+
+    case 56: 			// Midi Note XX goes to ..
+      startFade(4); 		// .. TLC Channel .. (and so on)
+      break;
+
+    case 57:
+      startFade(5);
+      break;
+
+    case 58:
+      startFade(6);
+      break;
+
+    case 59:
+      startFade(7);
+      break;
+
+    case 60:
+      startFade(8);
+      break;
+
+    case 61:
+      startFade(9);
+      break;
+
+//    case 1:
+//      startFade(10);
+//      break;
+//
+//    case 1:
+//      startFade(11);
+//      break;
+//
+//    case 1:
+//      startFade(12);
+//      break;
+//
+//    case 1:
+//      startFade(13);
+//      break;
+//
+//    case 1:
+//      startFade(14);
+//      break;
+//
+//    case 1:
+//      startFade(15);
+//      break;
+//
+//    case 1:
+//      startFade(16);
+//      break;
+
+  }
+  
 
 
-
+}
